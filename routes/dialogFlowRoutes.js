@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const dialogFlow = require("dialogflow");
 const config = require("../config/keys");
-
+const { Storage } = require("@google-cloud/storage");
 const sessionClient = new dialogFlow.SessionsClient();
 
 const sessionPath = sessionClient.sessionPath(
@@ -10,11 +10,25 @@ const sessionPath = sessionClient.sessionPath(
   config.dialogFlowSessionId
 );
 
-router.get("/", (req, res) => {
-  res.send({ Hello: "There" });
+router.get("/", async (req, res) => {
+  const storage = new Storage();
+  try {
+    // Makes an authenticated API request.
+    const results = await storage.getBuckets();
+
+    const [buckets] = results;
+
+    console.log("Buckets:");
+    buckets.forEach((bucket) => {
+      console.log(bucket.name);
+    });
+    res.send(buckets);
+  } catch (err) {
+    console.error("ERROR:", err);
+  }
 });
 
-router.post("/api/df_text_query", async (req, res) => {
+router.post("/df_text_query", async (req, res) => {
   const request = {
     session: sessionPath,
     queryInput: {
@@ -38,6 +52,8 @@ router.post("/api/df_text_query", async (req, res) => {
   } else {
     console.log(`  No intent matched.`);
   }
+
+  res.send(result);
 });
 
 router.post("/api/df_event_query", (req, res) => {});
